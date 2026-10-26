@@ -6,7 +6,7 @@ func _initialize():
 func start():
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
-func _process(_delta):
+func _process(_delta: float) -> bool:
 	frames += 1
 	if frames == 30:
 		root.get_texture().get_image().save_png("res://docs/menu-preview.png")
@@ -18,3 +18,4 @@ func _process(_delta):
 	if frames == 100:
 		root.get_texture().get_image().save_png("res://docs/combat-preview.png")
 	if frames == 110: quit()
+	return false

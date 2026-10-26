@@ -15,6 +15,7 @@ var paused_panel: PanelContainer
 var round_panel: PanelContainer
 var preview: Fighter
 var menu_camera: Camera3D
+var last_menu_character = ""
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
@@ -120,21 +121,31 @@ func _show_menu() -> void:
 	stage.add_child(arena)
 	arena.build(arena_index)
 	preview = preload("res://scenes/fighter.tscn").instantiate()
-	preview.character_path = selected_character
+	var characters = CharacterCatalog.entries()
+	var candidates = characters.filter(func(path): return path != last_menu_character)
+	preview.character_path = candidates.pick_random() if not candidates.is_empty() else selected_character
+	last_menu_character = preview.character_path
 	stage.add_child(preview)
 	preview.frozen = true
 	preview.rotation.y = -0.4
 	menu_camera = Camera3D.new()
 	stage.add_child(menu_camera)
-	menu_camera.position = Vector3(-3.5, 2.1, 6.3)
-	menu_camera.look_at(Vector3(-1.15, 1, 0))
+	menu_camera.position = Vector3(0, 1.65, 5.0)
+	menu_camera.fov = 34.0
+	menu_camera.look_at(Vector3(-0.95, 1.16, 0))
 	var box = _panel(Vector2(45, 45), Vector2(410, 620))
-	_label(box, "THE FIGHT", 52)
-	_label(box, "PULSE / ARENA PROTOCOL", 16)
-	_label(box, "Combate terrestre • Protótipo 3D", 16)
+	var title = _label(box, "THE FIGHT", 62)
+	title.name = "MenuTitle"
+	title.add_theme_font_override("font", preload("res://assets/fonts/menu_title.tres"))
+	title.add_theme_color_override("font_color", Color("fff0c7"))
+	title.add_theme_color_override("font_outline_color", Color("101725"))
+	title.add_theme_constant_override("outline_size", 5)
+	var spacer = Control.new()
+	spacer.custom_minimum_size.y = 255
+	box.add_child(spacer)
 	_button(box, "JOGAR", func(): _show_selection(false)).grab_focus()
 	_button(box, "MULTIPLAYER LOCAL", func(): _show_selection(true))
-	_button(box, "CONFIGURA??ES", _settings)
+	_button(box, "CONFIGURAÇÕES", _settings)
 func _show_selection(multiplayer: bool) -> void:
 	local_multiplayer = multiplayer
 	_clear()

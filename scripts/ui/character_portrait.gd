@@ -21,8 +21,8 @@ func setup(path: String, live: bool = true, close_up: bool = false) -> void:
 	if not live: fighter.set_physics_process(false)
 	var camera = Camera3D.new()
 	world.add_child(camera)
-	camera.position = Vector3(0, 1.5, 1.8) if close_up else Vector3(0, 1.15, 3.2)
-	camera.look_at(Vector3(0, 1.45, 0) if close_up else Vector3(0, 0.95, 0))
+	camera.position = Vector3(0, fighter.body_height * 0.82, 2.0) if close_up else Vector3(0, fighter.body_height * 0.6, 3.9)
+	camera.look_at(Vector3(0, fighter.body_height * 0.8, 0) if close_up else Vector3(0, fighter.body_height * 0.5, 0))
 	camera.fov = 34
 	var light = DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-25, -25, 0)

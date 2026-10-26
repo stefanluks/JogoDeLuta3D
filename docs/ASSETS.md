@@ -1,4 +1,4 @@
-﻿# Diagnóstico dos assets
+# Diagnóstico dos assets
 
 Godot instalada: 4.7.2 stable. Projeto inicial: sem cena principal, scripts ou sistemas reutilizáveis. Preservados arquivos FBX e referências de importação. A Godot extraiu texturas embutidas para a pasta dos modelos durante a importação.
 
@@ -11,7 +11,7 @@ Godot instalada: 4.7.2 stable. Projeto inicial: sem cena principal, scripts ou s
 | Vampire A Lusth | 99 | mixamorig_ |
 | Whiteclown N Hallin | 67 | mixamorig_ |
 
-Os modelos possuem Skeleton3D na raiz da cena importada. Remy tem aproximadamente 3,74 m no AABB original; os demais variam entre 1,80 e 2,11 m. A escala visual é normalizada no lutador, independentemente da cápsula de colisão de 1,80 m.
+Os modelos possuem Skeleton3D na raiz da cena importada. Remy tem aproximadamente 3,74 m no AABB original; os demais variam entre 1,80 e 2,11 m. A escala visual é normalizada para 2,20 m no lutador, independentemente da cápsula de colisão de 2,20 m (raio de 0,46 m).
 
 | Estado | Arquivo FBX | Clipe | Duração original |
 |---|---|---|---:|

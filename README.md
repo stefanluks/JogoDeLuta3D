@@ -42,7 +42,7 @@ Menus aceitam mouse, teclado e navegação padrão da Godot por gamepad. As aç�
 
 Coloque uma cena `.fbx`, `.glb`, `.gltf` ou `.tscn` em **`assets/characters/`** e aguarde sua importação. Ela aparecerá nos seletores ao abrir o menu. Não coloque animações nessa pasta.
 
-Por enquanto, todos utilizam os mesmos arquivos de `assets/animations/`. Os seis modelos fornecidos foram verificados com os onze estados compartilhados. O adaptador reconhece ossos Mixamo por nome sem prefixo, inclusive `mixamorig9_`, remapeia caminhos, adapta rotações à pose de repouso e mantém as posições de repouso dos ossos para preservar proporções e evitar root motion. A altura visual é normalizada para 1,85 m.
+Por enquanto, todos utilizam os mesmos arquivos de `assets/animations/`. Os seis modelos fornecidos foram verificados com os onze estados compartilhados. O adaptador reconhece ossos Mixamo por nome sem prefixo, inclusive `mixamorig9_`, remapeia caminhos, adapta rotações à pose de repouso e mantém as posições de repouso dos ossos para preservar proporções e evitar root motion. A altura visual é normalizada para 2,20 m.
 
 **Compatibilidade:** o personagem precisa de `Skeleton3D`, skin e ossos humanoides equivalentes aos do Mixamo. Soltar qualquer esqueleto arbitrário na pasta não garante retargeting correto. Modelos de outra convenção precisam de mapeamento adicional; ossos sem correspondência permanecem na pose de repouso. A animação usa rotações e mantém as translações dos ossos em repouso, portanto o balanço vertical original do quadril fica suprimido. Confira pés, mãos e roupa no editor ao adicionar novos modelos.
 
@@ -115,3 +115,12 @@ As refer?ncias visuais orientaram a composi??o das barras, os grandes previews l
 ### Organiza??o das altera??es desta etapa
 
 Os commits solicitados n?o puderam ser gravados porque a autoriza??o de escrita na pasta `.git` foi recusada. As altera??es est?o no diret?rio de trabalho da branch existente. Veja `docs/CHANGES.md` para os grupos por funcionalidade e valida??es.
+
+## Atualiza??o do menu (`update-menu`)
+
+- T?tulo com fonte de destaque do sistema (Impact, com alternativas Bahnschrift Condensed/Arial Black), sem distribuir fontes propriet?rias.
+- Apenas t?tulo e as tr?s op??es; bot?es na parte inferior e texto Configurações em UTF-8.
+- Personagem de apresentação sorteado a cada entrada no menu, sem repetir imediatamente e sem alterar a escolha do jogador.
+- Câmera do menu mais próxima, com corpo completo no enquadramento.
+- Altura visual compartilhada de 2,20 m, cápsula de colisão de 2,20 m com raio 0,46 m e correção do apoio dos pés pela pose animada. Altura e raio são editáveis no Inspector.
+- 149 verificações adicionais em `tests/menu_update.gd`, além dos testes existentes. Menu conferido em execução gráfica na GTX 1650; captura em `docs/menu-preview.png`.

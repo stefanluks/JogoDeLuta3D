@@ -6,6 +6,12 @@ signal heavy_hit
 @export var human = false
 @export var input_prefix = ""
 var control_camera: Camera3D
+@export_range(1.5, 3.0) var body_height = 2.2
+@export_range(0.3, 0.8) var body_radius = 0.46
+var support_bones: Array[int] = []
+var sole_clearance = 0.0
+var bind_bottom = 0.0
+var body_collider: CollisionShape3D
 @export var display_name = "Fighter"
 @export var walk_speed = 3.2
 @export var run_speed = 7.5
@@ -44,18 +50,24 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 3
 	var collider = CollisionShape3D.new()
+	body_collider = collider
+	collider.name = "BodyCollision"
 	var capsule = CapsuleShape3D.new()
-	capsule.radius = 0.36
-	capsule.height = 1.8
+	capsule.radius = body_radius
+	capsule.height = body_height
 	collider.shape = capsule
-	collider.position.y = 0.9
+	collider.position.y = body_height * 0.5
 	add_child(collider)
 	model = load(character_path).instantiate()
 	model.name = "Model"
 	add_child(model)
-	var height = 0.0
+	var bounds = AABB()
+	var has_bounds = false
 	for mesh in model.find_children("*", "MeshInstance3D", true, false):
-		height = maxf(height, mesh.get_aabb().end.y)
+		var local_transform: Transform3D = model.global_transform.affine_inverse() * mesh.global_transform
+		var mesh_bounds: AABB = local_transform * mesh.get_aabb()
+		bounds = bounds.merge(mesh_bounds) if has_bounds else mesh_bounds
+		has_bounds = true
 		for surface in mesh.mesh.get_surface_count():
 			var original = mesh.get_active_material(surface)
 			if original is StandardMaterial3D:
@@ -66,12 +78,17 @@ func _ready() -> void:
 					toon.set_shader_parameter("has_texture", true)
 					toon.set_shader_parameter("albedo_texture", original.albedo_texture)
 				mesh.set_surface_override_material(surface, toon)
-	if height > 0: model.scale = Vector3.ONE * 1.85 / height
+	if has_bounds and bounds.size.y > 0:
+		model.scale = Vector3.ONE * body_height / bounds.size.y
+		bind_bottom = bounds.position.y
 	animation = SharedAnimation.install(model)
 	if animation.is_empty():
 		set_physics_process(false)
 		return
 	animation.tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	_prepare_ground_support()
+	animation.tree.advance(0.0)
+	_update_ground_support()
 	hand = BoneAttachment3D.new()
 	for bone in animation.skeleton.get_bone_count():
 		if CharacterCatalog.bone_key(animation.skeleton.get_bone_name(bone)) == "RightHand":
@@ -97,6 +114,24 @@ func _ready() -> void:
 	shield.scale.z = 0.3
 	shield.visible = false
 	dust = CombatFX.dust(self)
+## Use the animated feet, rather than the unposed mesh AABB, to keep the soles grounded.
+func _prepare_ground_support() -> void:
+	var skeleton: Skeleton3D = animation.skeleton
+	var lowest_rest = INF
+	var to_model = model.global_transform.affine_inverse() * skeleton.global_transform
+	for bone in skeleton.get_bone_count():
+		if CharacterCatalog.bone_key(skeleton.get_bone_name(bone)) in ["LeftFoot", "RightFoot", "LeftToeBase", "RightToeBase"]:
+			support_bones.append(bone)
+			lowest_rest = minf(lowest_rest, (to_model * skeleton.get_bone_global_rest(bone).origin).y)
+	sole_clearance = bind_bottom - lowest_rest if not support_bones.is_empty() else 0.0
+func _update_ground_support() -> void:
+	if support_bones.is_empty() or state == "Defeat": return
+	var skeleton: Skeleton3D = animation.skeleton
+	var to_model = model.global_transform.affine_inverse() * skeleton.global_transform
+	var lowest_pose = INF
+	for bone in support_bones:
+		lowest_pose = minf(lowest_pose, (to_model * skeleton.get_bone_global_pose(bone).origin).y)
+	model.position.y = -(lowest_pose + sole_clearance) * model.scale.y
 func set_state(next: String, speed: float = 1.0) -> void:
 	if state == next: return
 	state = next
@@ -137,6 +172,7 @@ func receive_hit(amount: float, direction: Vector3, special: bool = false) -> vo
 		set_state("Reaction" if special else "Hit", 1.8)
 func _physics_process(delta: float) -> void:
 	animation.tree.advance(delta * rate)
+	_update_ground_support()
 	if frozen: return
 	elapsed += delta
 	if health <= 0:
