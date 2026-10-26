@@ -76,7 +76,7 @@ godot --headless --path . --scripttests/integration.gd
 godot --headless --path . --quit-after 120
 ```
 
-O teste de integração executou **3.535 verificações**: seis esqueletos, estados/trilhas, três arenas, colisão de soco, buffer e três golpes, escudo frontal, reação especial, consumo e lançamento de energia, vitória, reinício e menu. Uma luta autônoma entre duas IAs também terminou com derrota e resultado no frame 836 (cerca de 14 segundos simulados). Essas verificações não substituem a avaliação visual ou de desempenho.
+O teste de integração executou **3.535 verificações**: seis esqueletos, estados/trilhas, três arenas, colisão de soco, buffer e três golpes, escudo frontal, reação especial, consumo e lançamento de energia, vitória, reinício e menu. Uma luta autônoma entre duas IAs também terminou com derrota e resultado em menos de 15 segundos simulados no teste desta etapa. Essas verificações não substituem a avaliação visual ou de desempenho.
 
 A execução gráfica para capturar e verificar materiais/afterimages não foi autorizada nesta sessão. Portanto **a renderização, o enquadramento e o acabamento visual ainda exigem validação manual**, seguindo `docs/VALIDATION.md`. A Godot headless apresentou um aviso de acesso ao repositório de certificados do Windows; o teste concluiu sem erro de script. Na importação dentro do sandbox também houve restrição ao salvamento das preferências globais da Godot.
 
@@ -103,3 +103,15 @@ Referências técnicas oficiais: [AnimationTree](https://docs.godotengine.org/en
 > Este jogo é um projeto de treinamento e estudo de desenvolvimento de jogos 3D utilizando a Godot Engine. Seu objetivo é explorar sistemas de combate, animações, efeitos visuais, inteligência artificial e construção de ambientes interativos.
 >
 > O projeto encontra-se em desenvolvimento e futuramente receberá personagens, cenários, habilidades e elementos visuais totalmente originais, construindo uma identidade própria e independente das obras que serviram de inspiração para o estudo.
+
+## Sele??o e multiplayer local
+
+No modo solo, WASD ou setas navegam pela grade, J/Enter confirmam o personagem e depois o advers?rio CPU. Tab alterna o lado em edi??o. No multiplayer, as duas grades representam sele??es independentes: P1 usa WASD + J, P2 usa setas + Num 1. Clique num retrato para selecionar; o bot?o central confirma o lado ativo. Nos gamepads 0 e 1, anal?gico move o cursor, A confirma e B desfaz. Esc volta ao menu. Ap?s ambas as confirma??es, a arena ? sorteada.
+
+Durante a luta, P1 mant?m WASD / Shift / J / K / L. P2 usa setas / Num 0 (corrida) / Num 1 (soco) / Num 2 (energia) / Num 3 (escudo) / Num 5 (lock-on). Gamepad 0 controla P1 e gamepad 1 controla P2. Cada jogador se move em rela??o ? pr?pria c?mera. Start de qualquer controle pausa. O HUD ? compartilhado sobre as duas metades.
+
+As refer?ncias visuais orientaram a composi??o das barras, os grandes previews laterais e as grades do seletor. Foram utilizados apenas os personagens do projeto, com molduras e cores pr?prias.
+
+### Organiza??o das altera??es desta etapa
+
+Os commits solicitados n?o puderam ser gravados porque a autoriza??o de escrita na pasta `.git` foi recusada. As altera??es est?o no diret?rio de trabalho da branch existente. Veja `docs/CHANGES.md` para os grupos por funcionalidade e valida??es.

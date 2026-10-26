@@ -4,6 +4,8 @@ signal defeated(fighter)
 signal heavy_hit
 @export_file("*.fbx", "*.glb", "*.tscn") var character_path = "res://assets/characters/X Bot.fbx"
 @export var human = false
+@export var input_prefix = ""
+var control_camera: Camera3D
 @export var display_name = "Fighter"
 @export var walk_speed = 3.2
 @export var run_speed = 7.5
@@ -121,6 +123,7 @@ func receive_hit(amount: float, direction: Vector3, special: bool = false) -> vo
 	var frontal = global_basis.z.dot(-direction) > 0.15
 	if state == "Guard" and frontal and energy >= amount * 0.7:
 		energy -= amount * 0.7
+		CombatFX.hit_particles(get_parent(), global_position + Vector3.UP, -direction, false, Color(0.2, 0.8, 1))
 		CombatFX.burst(get_parent(), global_position + Vector3.UP, Color(0.25, 0.8, 1), 0.8)
 		return
 	health = maxf(0, health - amount)
@@ -202,21 +205,23 @@ func _melee() -> void:
 	for hit in get_world_3d().direct_space_state.intersect_shape(query):
 		if hit.collider == opponent:
 			landed = true
+			CombatFX.hit_particles(get_parent(), opponent.global_position + Vector3.UP, global_basis.z, combo == 3)
 			opponent.receive_hit(16 if combo == 3 else 9, global_basis.z)
 			CombatFX.burst(get_parent(), opponent.global_position + Vector3.UP, Color(1, 0.65, 0.15), 1.4 if combo == 3 else 0.7)
 			if combo == 3: heavy_hit.emit()
 func _read_player() -> void:
-	var input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var camera = get_viewport().get_camera_3d()
+	var input = Input.get_vector(input_prefix + "move_left", input_prefix + "move_right", input_prefix + "move_forward", input_prefix + "move_back")
+	var camera = control_camera if is_instance_valid(control_camera) else get_viewport().get_camera_3d()
+	if not is_instance_valid(camera): return
 	var forward = -camera.global_basis.z
 	forward.y = 0
 	forward = forward.normalized()
 	move_intent = (camera.global_basis.x * input.x - forward * input.y).normalized()
-	run_intent = Input.is_action_pressed("run")
-	guard_intent = Input.is_action_pressed("guard")
-	if Input.is_action_just_pressed("attack"): attack()
-	if Input.is_action_just_pressed("special"): cast()
-	if Input.is_action_just_pressed("lock_on"): lock_on = not lock_on
+	run_intent = Input.is_action_pressed(input_prefix + "run")
+	guard_intent = Input.is_action_pressed(input_prefix + "guard")
+	if Input.is_action_just_pressed(input_prefix + "attack"): attack()
+	if Input.is_action_just_pressed(input_prefix + "special"): cast()
+	if Input.is_action_just_pressed(input_prefix + "lock_on"): lock_on = not lock_on
 func _read_ai(delta: float) -> void:
 	move_intent = Vector3.ZERO
 	if not is_instance_valid(opponent) or opponent.health <= 0: return

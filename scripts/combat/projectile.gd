@@ -47,5 +47,6 @@ func _physics_process(delta: float) -> void:
 func _impact(body: Node) -> void:
 	if body == shooter or is_queued_for_deletion(): return
 	if body.has_method("receive_hit"): body.receive_hit(damage, direction, true)
+	CombatFX.hit_particles(get_parent(), global_position, -direction, true, color)
 	CombatFX.burst(get_parent(), global_position, color, 1.5)
 	queue_free()

@@ -29,7 +29,11 @@ func run() -> void:
 		fighter.queue_free()
 		await process_frame
 	for index in 3:
-		game.arena_index = index
+		var arena = ArenaBuilder.new()
+		game.stage.add_child(arena)
+		arena.build(index)
+		verify(arena.get_node("SpawnPlayer") != null, "Arena layout " + str(index))
+		arena.queue_free()
 		game._start_fight()
 		await physics_frame
 		verify(game.player.opponent == game.enemy, "Opponent wiring")

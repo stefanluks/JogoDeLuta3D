@@ -57,3 +57,38 @@ static func afterimage(model: Node3D, parent: Node3D) -> void:
 	tween.tween_method(func(alpha):
 		for child in ghost.get_children(): child.transparency = alpha, 0.0, 1.0, 0.22)
 	tween.tween_callback(ghost.queue_free)
+
+## Short one-shot sparks; directional emission and automatic cleanup.
+static func hit_particles(parent: Node3D, point: Vector3, direction: Vector3, heavy: bool = false, color: Color = Color(1, 0.65, 0.15)) -> GPUParticles3D:
+	var sparks = GPUParticles3D.new()
+	sparks.name = "HitSparks"
+	sparks.amount = 32 if heavy else 18
+	sparks.lifetime = 0.38
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.local_coords = false
+	sparks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var process = ParticleProcessMaterial.new()
+	process.direction = direction.normalized()
+	process.spread = 65.0
+	process.initial_velocity_min = 2.0
+	process.initial_velocity_max = 7.0 if heavy else 4.5
+	process.gravity = Vector3(0, -6, 0)
+	process.scale_min = 0.025
+	process.scale_max = 0.075
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(1, 0.95, 0.7))
+	gradient.set_color(1, Color(color, 0))
+	var ramp = GradientTexture1D.new()
+	ramp.gradient = gradient
+	process.color_ramp = ramp
+	sparks.process_material = process
+	var mesh = BoxMesh.new()
+	mesh.size = Vector3(0.6, 0.6, 2.0)
+	mesh.material = material(color)
+	sparks.draw_pass_1 = mesh
+	parent.add_child(sparks)
+	sparks.global_position = point
+	sparks.finished.connect(sparks.queue_free)
+	sparks.emitting = true
+	return sparks

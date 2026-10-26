@@ -1,5 +1,7 @@
 extends Node3D
 var arena_index = 0
+var local_multiplayer = false
+var selector: Control
 var selected_character = "res://assets/characters/X Bot.fbx"
 var selected_enemy = "res://assets/characters/Y Bot.fbx"
 var stage: Node3D
@@ -7,8 +9,6 @@ var ui: CanvasLayer
 var player: Fighter
 var enemy: Fighter
 var camera: CombatCamera
-var status: Label
-var bars: Array[ProgressBar] = []
 var fighting = false
 var ended = false
 var paused_panel: PanelContainer
@@ -38,6 +38,23 @@ func _setup_input() -> void:
 		event.axis = JOY_AXIS_LEFT_X if action in ["move_left", "move_right"] else JOY_AXIS_LEFT_Y
 		event.axis_value = -1 if action in ["move_left", "move_forward"] else 1
 		InputMap.action_add_event(action, event)
+	var pause_second = InputEventJoypadButton.new()
+	pause_second.device = 1
+	pause_second.button_index = JOY_BUTTON_START
+	InputMap.action_add_event("pause", pause_second)
+	var second_keys = {"move_forward": KEY_UP, "move_back": KEY_DOWN, "move_left": KEY_LEFT, "move_right": KEY_RIGHT, "run": KEY_KP_0, "attack": KEY_KP_1, "special": KEY_KP_2, "guard": KEY_KP_3, "lock_on": KEY_KP_5}
+	for action in second_keys:
+		var second = "p2_" + action
+		if not InputMap.has_action(second): InputMap.add_action(second)
+		InputMap.action_erase_events(second)
+		var key = InputEventKey.new()
+		key.physical_keycode = second_keys[action]
+		InputMap.action_add_event(second, key)
+		for source in InputMap.action_get_events(action):
+			if source is InputEventJoypadButton or source is InputEventJoypadMotion:
+				var event = source.duplicate()
+				event.device = 1
+				InputMap.action_add_event(second, event)
 func _setup_theme() -> void:
 	var theme = Theme.new()
 	theme.default_font_size = 20
@@ -73,7 +90,6 @@ func _clear() -> void:
 	stage = Node3D.new()
 	stage.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(stage)
-	bars.clear()
 	fighting = false
 	ended = false
 func _label(parent: Node, text: String, size: int = 20) -> Label:
@@ -116,29 +132,20 @@ func _show_menu() -> void:
 	_label(box, "THE FIGHT", 52)
 	_label(box, "PULSE / ARENA PROTOCOL", 16)
 	_label(box, "Combate terrestre • Protótipo 3D", 16)
-	_button(box, "JOGAR", _start_fight).grab_focus()
-	_label(box, "ARENA", 15)
-	var arenas = OptionButton.new()
-	for title in ArenaBuilder.NAMES: arenas.add_item(title)
-	arenas.select(arena_index)
-	box.add_child(arenas)
-	arenas.item_selected.connect(func(index): arena_index = index; _show_menu())
-	_character_picker(box, "SEU PERSONAGEM", selected_character, true)
-	_character_picker(box, "ADVERSÁRIO", selected_enemy, false)
-	_button(box, "CONFIGURAÇÕES", _settings)
-	_button(box, "SAIR", func(): get_tree().quit())
-func _character_picker(box: VBoxContainer, title: String, selected: String, is_player: bool) -> void:
-	_label(box, title, 15)
-	var picker = OptionButton.new()
-	var characters = CharacterCatalog.entries()
-	for path in characters: picker.add_item(path.get_file().get_basename())
-	picker.select(maxi(0, characters.find(selected)))
-	box.add_child(picker)
-	picker.item_selected.connect(func(index):
-		if is_player:
-			selected_character = characters[index]
-			_show_menu()
-		else: selected_enemy = characters[index])
+	_button(box, "JOGAR", func(): _show_selection(false)).grab_focus()
+	_button(box, "MULTIPLAYER LOCAL", func(): _show_selection(true))
+	_button(box, "CONFIGURA??ES", _settings)
+func _show_selection(multiplayer: bool) -> void:
+	local_multiplayer = multiplayer
+	_clear()
+	selector = preload("res://scripts/ui/character_select.gd").new()
+	ui.get_child(0).add_child(selector)
+	selector.back.connect(_show_menu)
+	selector.selected.connect(func(first: String, second: String):
+		selected_character = first
+		selected_enemy = second
+		_start_fight())
+	selector.setup(multiplayer, selected_character, selected_enemy)
 func _settings() -> void:
 	var box = _panel(Vector2(485, 100), Vector2(450, 260))
 	_label(box, "CONFIGURAÇÕES", 28)
@@ -154,6 +161,7 @@ func _settings() -> void:
 	_button(box, "FECHAR", func(): box.get_parent().queue_free())
 func _start_fight() -> void:
 	_clear()
+	arena_index = randi_range(0, ArenaBuilder.NAMES.size() - 1)
 	var arena = ArenaBuilder.new()
 	stage.add_child(arena)
 	arena.build(arena_index)
@@ -165,6 +173,8 @@ func _start_fight() -> void:
 	player.position = arena.get_node("SpawnPlayer").position
 	enemy = preload("res://scenes/fighter.tscn").instantiate()
 	enemy.character_path = selected_enemy
+	enemy.human = local_multiplayer
+	enemy.input_prefix = "p2_"
 	enemy.display_name = selected_enemy.get_file().get_basename()
 	stage.add_child(enemy)
 	enemy.position = arena.get_node("SpawnOpponent").position
@@ -176,31 +186,43 @@ func _start_fight() -> void:
 	stage.add_child(camera)
 	camera.player = player
 	camera.opponent = enemy
+	player.control_camera = camera
+	if local_multiplayer: _setup_split_screen()
 	player.heavy_hit.connect(func(): camera.shake = 0.18)
 	enemy.heavy_hit.connect(func(): camera.shake = 0.18)
-	var hud = _panel(Vector2(25, 20), Vector2(500, 180))
-	for fighter in [player, enemy]:
-		_label(hud, fighter.display_name, 18)
-		for color in [Color("65e4bc"), Color("52b8f3")]:
-			var bar = ProgressBar.new()
-			bar.custom_minimum_size = Vector2(430, 13)
-			bar.show_percentage = false
-			var fill = StyleBoxFlat.new()
-			fill.bg_color = color
-			bar.add_theme_stylebox_override("fill", fill)
-			hud.add_child(bar)
-			bars.append(bar)
-	status = _label(hud, "", 14)
-	var help = _panel(Vector2(25, 640), Vector2(850, 40))
-	_label(help, "WASD mover   SHIFT correr   J combo   K energia   L escudo   TAB lock-on   ESC pausa", 16)
+	var hud = preload("res://scripts/ui/fight_hud.gd").new()
+	ui.get_child(0).add_child(hud)
+	hud.setup(player, enemy)
 	fighting = true
-func _process(_delta: float) -> void:
-	if fighting and is_instance_valid(player):
-		bars[0].value = player.health
-		bars[1].value = player.energy
-		bars[2].value = enemy.health
-		bars[3].value = enemy.energy
-		status.text = "%s  /  %s  •  %s" % [player.state, enemy.state, "LOCK-ON" if player.lock_on else "LIVRE"]
+func _setup_split_screen() -> void:
+	var split = HBoxContainer.new()
+	split.size = Vector2(1280, 720)
+	split.add_theme_constant_override("separation", 2)
+	ui.get_child(0).add_child(split)
+	for side in 2:
+		var container = SubViewportContainer.new()
+		container.stretch = true
+		container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		split.add_child(container)
+		var viewport = SubViewport.new()
+		viewport.size = Vector2i(639, 720)
+		viewport.world_3d = stage.get_world_3d()
+		container.add_child(viewport)
+		var view: CombatCamera
+		if side == 0:
+			view = camera
+			view.reparent(viewport)
+		else:
+			view = CombatCamera.new()
+			viewport.add_child(view)
+			view.player = enemy
+			view.opponent = player
+			enemy.control_camera = view
+			player.heavy_hit.connect(func(): view.shake = 0.18)
+			enemy.heavy_hit.connect(func(): view.shake = 0.18)
+		view.process_mode = Node.PROCESS_MODE_PAUSABLE
+		view.current = true
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause") and fighting and not ended:
 		if get_tree().paused:
